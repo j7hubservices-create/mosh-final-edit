@@ -176,7 +176,7 @@ const handleDeleteOrder = async (orderId: string) => {
     if (orderError) throw orderError;
 
     // 3️⃣ Update UI
-    setFilteredOrders((prev) => prev.filter((o) => o.id !== orderId));
+    fetchOrders();
     toast.success("Order deleted successfully");
   } catch (err: any) {
     console.error(err);
@@ -220,27 +220,21 @@ const handleDeleteOrder = async (orderId: string) => {
   };
 
   const handleSoftDelete = async (id: string) => {
-    const confirm = window.confirm("Hide this product from the shop?");
+    const confirm = window.confirm("Delete this product permanently?");
     if (!confirm) return;
 
-    const { error } = await supabase.from("products").update({ is_deleted: true }).eq("id", id);
-    if (error) toast.error("Failed to hide product");
+    const { error } = await supabase.from("products").delete().eq("id", id);
+    if (error) toast.error("Failed to delete product");
     else {
-      toast.success("Product hidden!");
+      toast.success("Product deleted!");
       fetchProducts();
     }
   };
 
   const handleRestore = async (id: string) => {
-    const confirm = window.confirm("Restore this hidden product?");
-    if (!confirm) return;
-
-    const { error } = await supabase.from("products").update({ is_deleted: false }).eq("id", id);
-    if (error) toast.error("Failed to restore product");
-    else {
-      toast.success("Product restored!");
-      fetchProducts();
-    }
+    // Not needed since we're doing hard delete
+    toast.info("Restore not available");
+    return;
   };
 
   const handleSafeDelete = async (id: string) => {

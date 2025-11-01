@@ -85,23 +85,7 @@ const Account = () => {
 
       if (error) throw error;
 
-      // Ensure short_order_id exists locally and attempt to persist
-      const updatedOrders = await Promise.all(
-        (data || []).map(async (o: any) => {
-          if (!o.short_order_id) {
-            const shortId = generateShortOrderId();
-            try {
-              await supabase.from("orders").update({ short_order_id: shortId }).eq("id", o.id);
-              o.short_order_id = shortId;
-            } catch (err) {
-              console.warn("Failed to set short_order_id for", o.id, err);
-            }
-          }
-          return o;
-        })
-      );
-
-      setOrders(updatedOrders);
+      setOrders(data || []);
     } catch (err) {
       console.error("Orders fetch error", err);
     } finally {
@@ -147,7 +131,7 @@ const Account = () => {
       const { data } = supabase.storage.from("profiles").getPublicUrl(filePath);
       const publicUrl = data.publicUrl;
       // upsert to profiles table
-      const { error: upsertErr } = await supabase.from("profiles").upsert({ id: user.id, avatar_url: publicUrl }, { returning: "minimal" });
+      const { error: upsertErr } = await supabase.from("profiles").upsert({ id: user.id, avatar_url: publicUrl });
       if (upsertErr) throw upsertErr;
       setProfile(prev => ({ ...prev, avatar_url: publicUrl }));
       toast.success("Profile photo updated");
@@ -174,7 +158,7 @@ const Account = () => {
 
   // Navigate to a dedicated tracking page
   const goToTrack = (order: any) => {
-    const idToUse = order.short_order_id || order.id;
+    const idToUse = order.order_number || order.id;
     navigate(`/track-order/${idToUse}`);
   };
 
@@ -334,7 +318,7 @@ const Account = () => {
                             onClick={() => goToTrack(order)}
                             className="ml-2 text-purple-600 font-semibold hover:underline"
                           >
-                            {order.short_order_id || order.id.substring(0, 8)}
+                            {order.order_number || order.id.substring(0, 8)}
                           </button>
 
                           <div className="ml-auto md:ml-6 text-xs text-muted-foreground">Placed</div>
@@ -408,11 +392,11 @@ const Account = () => {
           <div className="relative ml-auto w-full md:max-w-2xl bg-white h-full overflow-y-auto p-6">
             <div className="flex items-start justify-between gap-4 mb-4">
               <div>
-                <h2 className="text-xl font-bold">Order {activeOrder.short_order_id || activeOrder.id.substring(0, 8)}</h2>
+                <h2 className="text-xl font-bold">Order {activeOrder.order_number || activeOrder.id.substring(0, 8)}</h2>
                 <div className="text-sm text-muted-foreground">{new Date(activeOrder.created_at).toLocaleString()}</div>
               </div>
               <div className="flex gap-2">
-                <Button variant="ghost" onClick={() => { navigator.clipboard?.writeText(activeOrder.short_order_id || activeOrder.id); toast.success("Copied"); }}>Copy ID</Button>
+                <Button variant="ghost" onClick={() => { navigator.clipboard?.writeText(activeOrder.order_number || activeOrder.id); toast.success("Copied"); }}>Copy ID</Button>
                 <Button onClick={() => goToTrack(activeOrder)}>Open Tracker</Button>
                 <Button variant="destructive" onClick={closeOrder}>Close</Button>
               </div>
