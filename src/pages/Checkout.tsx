@@ -168,20 +168,6 @@ const Checkout = () => {
         console.error("Failed to send order confirmation email:", emailError);
       }
 
-      // Send welcome email for new users (if user just signed up)
-      if (user) {
-        try {
-          await supabase.functions.invoke("send-welcome-email", {
-            body: { 
-              email: formData.email, 
-              name: formData.name 
-            },
-          });
-        } catch (emailError) {
-          console.error("Failed to send welcome email:", emailError);
-        }
-      }
-
       if (user) {
         await supabase.from("cart_items").delete().eq("user_id", user.id);
       } else {

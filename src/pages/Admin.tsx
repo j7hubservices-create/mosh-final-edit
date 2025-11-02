@@ -15,6 +15,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import SafeImage from "@/components/ui/safe-image";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { updateOrderStatus } from "@/lib/orderHelpers";
 import "@/styles/admin.css";
 
 const Admin = () => {
@@ -147,11 +148,9 @@ const Admin = () => {
     if (data) setReviews(data);
   };
 
-  const updateOrderStatus = async (orderId: string, status: string) => {
-    const { error } = await supabase.from("orders").update({ status }).eq("id", orderId);
-    if (error) toast.error("Failed to update order status");
-    else {
-      toast.success("Order status updated!");
+  const handleOrderStatusUpdate = async (orderId: string, status: string) => {
+    const success = await updateOrderStatus(orderId, status);
+    if (success) {
       fetchOrders();
     }
   };
@@ -571,6 +570,7 @@ const handleDeleteOrder = async (orderId: string) => {
         <TableHead>C/N</TableHead>
         <TableHead>Details</TableHead>
         <TableHead>Status</TableHead>
+        <TableHead>Tracking</TableHead>
         <TableHead>Total</TableHead>
         <TableHead>Actions</TableHead>
       </TableRow>
@@ -660,18 +660,40 @@ const handleDeleteOrder = async (orderId: string) => {
             <TableCell>
               <Select
                 value={order.status}
-                onValueChange={(v) => updateOrderStatus(order.id, v)}
+                onValueChange={(v) => handleOrderStatusUpdate(order.id, v)}
               >
                 <SelectTrigger className="w-[120px]">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="pending">Pending</SelectItem>
+                  <SelectItem value="confirmed">Confirmed</SelectItem>
                   <SelectItem value="processing">Processing</SelectItem>
-                  <SelectItem value="completed">Completed</SelectItem>
+                  <SelectItem value="shipped">Shipped</SelectItem>
+                  <SelectItem value="delivered">Delivered</SelectItem>
                   <SelectItem value="cancelled">Cancelled</SelectItem>
                 </SelectContent>
               </Select>
+            </TableCell>
+            <TableCell>
+              <div className="text-xs">
+                {order.tracking_number && (
+                  <div className="font-mono">{order.tracking_number}</div>
+                )}
+                {order.tracking_status && (
+                  <div className="text-muted-foreground capitalize">
+                    {order.tracking_status}
+                  </div>
+                )}
+                {order.tracking_updated_at && (
+                  <div className="text-muted-foreground">
+                    {new Date(order.tracking_updated_at).toLocaleString()}
+                  </div>
+                )}
+                {!order.tracking_number && (
+                  <span className="text-muted-foreground">No tracking</span>
+                )}
+              </div>
             </TableCell>
             <TableCell>₦{order.total?.toLocaleString()}</TableCell>
             <TableCell>
