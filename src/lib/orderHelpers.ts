@@ -14,6 +14,15 @@ export const updateOrderStatus = async (
 
     if (updateError) throw updateError;
 
+    // Update delivery tracking
+    try {
+      await supabase.functions.invoke("delivery-tracking", {
+        body: { orderId },
+      });
+    } catch (trackingError) {
+      console.error("Failed to update delivery tracking:", trackingError);
+    }
+
     // Send status update email notification
     try {
       await supabase.functions.invoke("send-order-status-update", {
