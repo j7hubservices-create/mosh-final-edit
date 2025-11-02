@@ -23,7 +23,8 @@ const handler = async (req: Request): Promise<Response> => {
     console.log("Sending welcome email to:", email);
 
     const { data, error } = await resend.emails.send({
-      from: "Mosh Apparels <onboarding@resend.dev>",
+      from: "Mosh Apparels <noreply@moshapparels.com>",
+      reply_to: "moshapparelsofficial@gmail.com",
       to: [email],
       subject: "Welcome to Mosh Apparels! 🎉",
       html: `

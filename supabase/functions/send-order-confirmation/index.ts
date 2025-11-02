@@ -56,7 +56,8 @@ const handler = async (req: Request): Promise<Response> => {
       "Store Pickup";
 
     const { data, error } = await resend.emails.send({
-      from: "Mosh Apparels <orders@resend.dev>",
+      from: "Mosh Apparels <noreply@moshapparels.com>",
+      reply_to: "moshapparelsofficial@gmail.com",
       to: [order.customer_email],
       subject: `Order Confirmation - ${order.order_number || order.id.substring(0, 8)}`,
       html: `
