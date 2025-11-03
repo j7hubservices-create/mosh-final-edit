@@ -40,7 +40,15 @@ const Checkout = () => {
   });
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(async ({ data: { session }, error }) => {
+      // If there's an auth error, sign out to clear invalid session
+      if (error) {
+        await supabase.auth.signOut();
+        setUser(null);
+        fetchGuestCart();
+        return;
+      }
+
       setUser(session?.user ?? null);
       if (session?.user) {
         fetchCart(session.user.id);
