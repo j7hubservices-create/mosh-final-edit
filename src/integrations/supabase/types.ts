@@ -189,13 +189,9 @@ export type Database = {
           customer_phone: string
           delivery_method: string
           id: string
-          order_number: string | null
           payment_method: string
           status: string
           total: number
-          tracking_number: string | null
-          tracking_status: string | null
-          tracking_updated_at: string | null
           user_id: string | null
         }
         Insert: {
@@ -206,13 +202,9 @@ export type Database = {
           customer_phone: string
           delivery_method?: string
           id?: string
-          order_number?: string | null
           payment_method?: string
           status?: string
           total: number
-          tracking_number?: string | null
-          tracking_status?: string | null
-          tracking_updated_at?: string | null
           user_id?: string | null
         }
         Update: {
@@ -223,13 +215,9 @@ export type Database = {
           customer_phone?: string
           delivery_method?: string
           id?: string
-          order_number?: string | null
           payment_method?: string
           status?: string
           total?: number
-          tracking_number?: string | null
-          tracking_status?: string | null
-          tracking_updated_at?: string | null
           user_id?: string | null
         }
         Relationships: []
@@ -287,36 +275,6 @@ export type Database = {
           },
         ]
       }
-      profiles: {
-        Row: {
-          address: string | null
-          avatar_url: string | null
-          created_at: string | null
-          full_name: string | null
-          id: string
-          phone: string | null
-          updated_at: string | null
-        }
-        Insert: {
-          address?: string | null
-          avatar_url?: string | null
-          created_at?: string | null
-          full_name?: string | null
-          id: string
-          phone?: string | null
-          updated_at?: string | null
-        }
-        Update: {
-          address?: string | null
-          avatar_url?: string | null
-          created_at?: string | null
-          full_name?: string | null
-          id?: string
-          phone?: string | null
-          updated_at?: string | null
-        }
-        Relationships: []
-      }
       user_roles: {
         Row: {
           id: string
@@ -340,7 +298,6 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      generate_order_number: { Args: never; Returns: string }
       generate_slug: { Args: { text_input: string }; Returns: string }
       is_admin: { Args: { _user_id: string }; Returns: boolean }
     }
