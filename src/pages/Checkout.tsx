@@ -40,15 +40,7 @@ const Checkout = () => {
   });
 
   useEffect(() => {
-    supabase.auth.getSession().then(async ({ data: { session }, error }) => {
-      // If there's an auth error, sign out to clear invalid session
-      if (error) {
-        await supabase.auth.signOut();
-        setUser(null);
-        fetchGuestCart();
-        return;
-      }
-
+    supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user ?? null);
       if (session?.user) {
         fetchCart(session.user.id);
@@ -174,6 +166,20 @@ const Checkout = () => {
         });
       } catch (emailError) {
         console.error("Failed to send order confirmation email:", emailError);
+      }
+
+      // Send welcome email for new users (if user just signed up)
+      if (user) {
+        try {
+          await supabase.functions.invoke("send-welcome-email", {
+            body: { 
+              email: formData.email, 
+              name: formData.name 
+            },
+          });
+        } catch (emailError) {
+          console.error("Failed to send welcome email:", emailError);
+        }
       }
 
       if (user) {
