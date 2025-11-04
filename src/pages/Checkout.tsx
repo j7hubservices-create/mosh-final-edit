@@ -117,8 +117,8 @@ const Checkout = () => {
     }
   };
 
-  // ==== Confirm order for bank transfer ====
-  const handleConfirmBankOrder = async (e?: React.FormEvent) => {
+  // ==== Confirm order for bank transfer or after online payment ====
+  const handleConfirmOrder = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     setSubmitting(true);
 
@@ -138,7 +138,7 @@ const Checkout = () => {
             ? `Park: ${formData.address}`
             : "Pickup - 9, Bolanle Awosika Street, Coca Cola Road, Oju Oore, Ota, Ogun State",
         delivery_method: formData.deliveryMethod,
-        payment_method: "bank_transfer",
+        payment_method: "pending",
         status: "pending",
       };
 
@@ -182,7 +182,6 @@ const Checkout = () => {
     }
   };
 
-  // ==== Loading state ====
   if (loading) {
     return (
       <div className="min-h-screen flex flex-col">
@@ -195,7 +194,6 @@ const Checkout = () => {
     );
   }
 
-  // ==== Checkout page JSX ====
   return (
     <div className="min-h-screen flex flex-col bg-gray-50">
       <Navbar />
@@ -208,7 +206,6 @@ const Checkout = () => {
         <h1 className="text-3xl font-bold mb-6 text-center">Checkout</h1>
 
         <div className="grid gap-8 lg:grid-cols-3">
-          {/* Delivery Form */}
           <div className="lg:col-span-2">
             <Card className="p-6">
               <form onSubmit={handleProceedToPayment} className="space-y-4">
@@ -230,38 +227,34 @@ const Checkout = () => {
                   onChange={(val) => setFormData({ ...formData, phone: val })}
                 />
 
-                <div>
-                  <Label className="text-sm font-medium mb-2 block">
-                    Fulfillment Method
-                  </Label>
-                  <RadioGroup
-                    value={formData.deliveryMethod}
-                    onValueChange={(v) => setFormData({ ...formData, deliveryMethod: v as any })}
-                    className="grid grid-cols-3 gap-3"
-                  >
-                    <LabelOption
-                      value="doorstep"
-                      label="Doorstep"
-                      description="Delivered to your address"
-                      icon={<Truck className="h-4 w-4 text-purple-600" />}
-                      formData={formData}
-                    />
-                    <LabelOption
-                      value="park"
-                      label="Park"
-                      description="Pick up at nearest park / terminal"
-                      icon={<Package className="h-4 w-4 text-purple-600" />}
-                      formData={formData}
-                    />
-                    <LabelOption
-                      value="pickup"
-                      label="Pickup"
-                      description="Collect from store"
-                      icon={<Store className="h-4 w-4 text-purple-600" />}
-                      formData={formData}
-                    />
-                  </RadioGroup>
-                </div>
+                <Label className="text-sm font-medium mb-2 block">Fulfillment Method</Label>
+                <RadioGroup
+                  value={formData.deliveryMethod}
+                  onValueChange={(v) => setFormData({ ...formData, deliveryMethod: v as any })}
+                  className="grid grid-cols-3 gap-3"
+                >
+                  <LabelOption
+                    value="doorstep"
+                    label="Doorstep"
+                    description="Delivered to your address"
+                    icon={<Truck className="h-4 w-4 text-purple-600" />}
+                    formData={formData}
+                  />
+                  <LabelOption
+                    value="park"
+                    label="Park"
+                    description="Pick up at nearest park / terminal"
+                    icon={<Package className="h-4 w-4 text-purple-600" />}
+                    formData={formData}
+                  />
+                  <LabelOption
+                    value="pickup"
+                    label="Pickup"
+                    description="Collect from store"
+                    icon={<Store className="h-4 w-4 text-purple-600" />}
+                    formData={formData}
+                  />
+                </RadioGroup>
 
                 {formData.deliveryMethod !== "pickup" && (
                   <div>
@@ -287,36 +280,27 @@ const Checkout = () => {
 
                 {formData.deliveryMethod === "pickup" && <PickupInfo />}
 
-                <Button
-                  type="submit"
-                  className="w-full bg-purple-600 hover:bg-purple-700 text-white"
-                >
+                <Button type="submit" className="w-full bg-purple-600 hover:bg-purple-700 text-white">
                   Save & Continue
                 </Button>
               </form>
             </Card>
           </div>
 
-          {/* Order Summary + Payments */}
+          {/* Order summary and payments */}
           <div>
             <Card className="p-6">
               <OrderSummary cartItems={cartItems} getTotalPrice={getTotalPrice} />
             </Card>
 
             <div ref={paymentRef} className="space-y-6 mt-6">
-              {/* Bank Transfer */}
-              <BankTransfer
-                onConfirm={handleConfirmBankOrder}
-                submitting={submitting}
-              />
-
-              {/* Online Payment */}
+              <BankTransfer onConfirm={handleConfirmOrder} submitting={submitting} />
               <PaystackPayment
                 email={formData.email}
                 amount={getTotalPrice() * 100}
-                onSuccess={async (reference) => {
-                  await handleConfirmBankOrder(); // Save order after successful payment
-                  toast.success(`Payment successful! Reference: ${reference.reference}`);
+                onSuccess={async (ref) => {
+                  await handleConfirmOrder();
+                  toast.success(`Payment successful! Reference: ${ref.reference}`);
                   navigate("/thank-you");
                 }}
                 onClose={() => toast("Payment cancelled")}
@@ -370,9 +354,7 @@ const OrderSummary = ({ cartItems, getTotalPrice }: any) => (
               <div className="font-medium">{item.products.name}</div>
               <div className="text-xs text-muted-foreground">Qty: {item.quantity}</div>
             </div>
-            <div className="font-semibold">
-              ₦{(item.products.price * item.quantity).toLocaleString()}
-            </div>
+            <div className="font-semibold">₦{(item.products.price * item.quantity).toLocaleString()}</div>
           </div>
         ))
       )}
@@ -407,6 +389,33 @@ const BankTransfer = ({ onConfirm, submitting }: any) => (
     </Button>
   </div>
 );
+
+// ===== Paystack Payment component =====
+const PaystackPayment = ({ email, amount, onSuccess, onClose }: any) => {
+  const handlePayment = () => {
+    if (!(window as any).PaystackPop) {
+      toast.error("Paystack SDK not loaded");
+      return;
+    }
+    const handler = (window as any).PaystackPop.setup({
+      key: "YOUR_PAYSTACK_PUBLIC_KEY",
+      email,
+      amount,
+      callback: onSuccess,
+      onClose,
+    });
+    handler.openIframe();
+  };
+
+  return (
+    <div className="border rounded-lg p-4 bg-white space-y-2">
+      <h3 className="text-lg font-semibold mb-3">Pay Online</h3>
+      <Button onClick={handlePayment} className="w-full bg-green-600 hover:bg-green-700 text-white">
+        Pay with Paystack
+      </Button>
+    </div>
+  );
+};
 
 const BankModal = ({ navigate, setShowBankModal }: any) => (
   <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
