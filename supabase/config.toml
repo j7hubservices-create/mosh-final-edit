@@ -2,3 +2,8 @@ project_id = "rlqzyknserhoxmkzrtku"
 
 [functions.product-ai]
 verify_jwt = false
+
+[extensions.pg_net]
+version = "*"
+schema = "extensions"
+
