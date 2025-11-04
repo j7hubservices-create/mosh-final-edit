@@ -13,6 +13,14 @@ import { toast } from "sonner";
 import { z } from "zod";
 import { Truck, Store, MapPin, Package, Banknote } from "lucide-react";
 
+// Centralized Bank Details
+const BANK_DETAILS = {
+  accountName: "Mosh Apparels Ventures",
+  bank: "OPay",
+  accountNumber: "6142257816",
+};
+
+// Form Validation Schema
 const checkoutSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
   email: z.string().email("Invalid email address"),
@@ -39,6 +47,7 @@ const Checkout = () => {
     deliveryMethod: "doorstep" as "doorstep" | "park" | "pickup",
   });
 
+  // Fetch user session & cart
   useEffect(() => {
     supabase.auth.getSession().then(async ({ data: { session }, error }) => {
       if (error) {
@@ -103,6 +112,7 @@ const Checkout = () => {
   const getTotalPrice = () =>
     cartItems.reduce((total, item) => total + item.products.price * item.quantity, 0);
 
+  // Proceed to payment section
   const handleProceedToPayment = (e: React.FormEvent) => {
     e.preventDefault();
     try {
@@ -116,6 +126,7 @@ const Checkout = () => {
     }
   };
 
+  // Confirm Order & Save
   const handleConfirmOrder = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
 
@@ -164,6 +175,7 @@ const Checkout = () => {
       const { error: itemsError } = await supabase.from("order_items").insert(orderItems);
       if (itemsError) throw itemsError;
 
+      // Trigger order confirmation email
       try {
         await supabase.functions.invoke("send-order-confirmation", {
           body: { orderId: order.id },
@@ -202,7 +214,6 @@ const Checkout = () => {
   return (
     <div className="min-h-screen flex flex-col bg-gray-50">
       <Navbar />
-
       <div className="container mx-auto px-4 py-8 flex-1">
         <div className="text-center bg-purple-50 border border-purple-100 text-purple-800 text-sm py-3 px-4 rounded-md mb-6">
           ⚠️ Please screenshot your order or save your order reference.
@@ -232,7 +243,7 @@ const Checkout = () => {
                   </RadioGroup>
                 </div>
 
-                {(formData.deliveryMethod !== "pickup") && (
+                {formData.deliveryMethod !== "pickup" && (
                   <div>
                     <Label htmlFor="address">{formData.deliveryMethod === "doorstep" ? "Delivery Address" : "Nearest Park / Terminal"}</Label>
                     <Textarea
@@ -246,9 +257,7 @@ const Checkout = () => {
                   </div>
                 )}
 
-                {formData.deliveryMethod === "pickup" && (
-                  <PickupInfo />
-                )}
+                {formData.deliveryMethod === "pickup" && <PickupInfo />}
 
                 <Button type="submit" className="w-full bg-purple-600 hover:bg-purple-700 text-white">
                   Save & Continue
@@ -264,7 +273,7 @@ const Checkout = () => {
             </Card>
 
             <div ref={paymentRef} className="space-y-6 mt-6">
-              <BankTransfer onConfirm={handleConfirmOrder} submitting={submitting} />
+              <BankTransfer onConfirm={handleConfirmOrder} submitting={submitting} bankDetails={BANK_DETAILS} />
               {/* Paystack integration placeholder */}
               {/* <PaystackPayment /> */}
             </div>
@@ -272,14 +281,13 @@ const Checkout = () => {
         </div>
       </div>
 
-      {showBankModal && <BankModal navigate={navigate} setShowBankModal={setShowBankModal} />}
+      {showBankModal && <BankModal navigate={navigate} setShowBankModal={setShowBankModal} bankDetails={BANK_DETAILS} />}
       <Footer />
     </div>
   );
 };
 
 // === Helper Components ===
-
 const InputField = ({ label, value, onChange, type = "text" }: any) => (
   <div>
     <Label>{label}</Label>
@@ -331,7 +339,7 @@ const OrderSummary = ({ cartItems, getTotalPrice }: any) => (
   </>
 );
 
-const BankTransfer = ({ onConfirm, submitting }: any) => (
+const BankTransfer = ({ onConfirm, submitting, bankDetails }: any) => (
   <div className="border rounded-lg p-4 bg-white space-y-2">
     <h3 className="text-lg font-semibold mb-3">Bank Transfer</h3>
     <div className="flex items-center gap-3 mb-2">
@@ -342,9 +350,9 @@ const BankTransfer = ({ onConfirm, submitting }: any) => (
       </div>
     </div>
     <div className="text-sm text-muted-foreground leading-relaxed">
-      <div><strong>Account Name:</strong> Mosh Apparels Ventures</div>
-      <div><strong>Bank:</strong> OPay</div>
-      <div><strong>Account Number:</strong> 6142257816</div>
+      <div><strong>Account Name:</strong> {bankDetails.accountName}</div>
+      <div><strong>Bank:</strong> {bankDetails.bank}</div>
+      <div><strong>Account Number:</strong> {bankDetails.accountNumber}</div>
     </div>
     <div className="mt-3 text-xs text-muted-foreground">
       After transfer, click <strong>“I have paid — Confirm Order”</strong>.
@@ -355,7 +363,7 @@ const BankTransfer = ({ onConfirm, submitting }: any) => (
   </div>
 );
 
-const BankModal = ({ navigate, setShowBankModal }: any) => (
+const BankModal = ({ navigate, setShowBankModal, bankDetails }: any) => (
   <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
     <div className="bg-white rounded-2xl max-w-md w-full p-6">
       <h3 className="text-xl font-bold mb-3">Order Confirmed</h3>
@@ -364,9 +372,9 @@ const BankModal = ({ navigate, setShowBankModal }: any) => (
         Please keep your payment receipt and a screenshot of this order.
       </p>
       <div className="space-y-2 text-sm">
-        <div><strong>Account Name:</strong> Mosh Apparels Ventures</div>
-        <div><strong>Bank:</strong> OPay</div>
-        <div><strong>Account Number:</strong> 6142257816</div>
+        <div><strong>Account Name:</strong> {bankDetails.accountName}</div>
+        <div><strong>Bank:</strong> {bankDetails.bank}</div>
+        <div><strong>Account Number:</strong> {bankDetails.accountNumber}</div>
       </div>
       <div className="mt-6 flex justify-end gap-3">
         <Button variant="outline" onClick={() => { setShowBankModal(false); navigate("/"); }}>Done</Button>
