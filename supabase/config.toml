@@ -1,4 +1,4 @@
-project_id = "rlqzyknserhoxmkzrtku"
+project_id = "qpsldrtvzarqlzrdoirl"
 
 [functions.product-ai]
 verify_jwt = false
@@ -7,3 +7,6 @@ verify_jwt = false
 version = "*"
 schema = "extensions"
 
+[app.settings]
+supabase_url = "https://qpsldrtvzarqlzrdoirl.supabase.co"
+service_role_key = "YOUR_SERVICE_ROLE_KEY"
