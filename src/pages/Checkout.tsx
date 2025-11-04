@@ -11,16 +11,9 @@ import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { z } from "zod";
-import { Truck, Store, MapPin, Package, Banknote } from "lucide-react";
+import { Truck, Store, MapPin, Package, Banknote, CreditCard } from "lucide-react";
 
-// Centralized Bank Details
-const BANK_DETAILS = {
-  accountName: "Mosh Apparels Ventures",
-  bank: "OPay",
-  accountNumber: "6142257816",
-};
-
-// Form Validation Schema
+// ====== Zod schema for checkout form ======
 const checkoutSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
   email: z.string().email("Invalid email address"),
@@ -47,7 +40,7 @@ const Checkout = () => {
     deliveryMethod: "doorstep" as "doorstep" | "park" | "pickup",
   });
 
-  // Fetch user session & cart
+  // ==== Fetch user session and cart ====
   useEffect(() => {
     supabase.auth.getSession().then(async ({ data: { session }, error }) => {
       if (error) {
@@ -56,7 +49,6 @@ const Checkout = () => {
         fetchGuestCart();
         return;
       }
-
       setUser(session?.user ?? null);
       if (session?.user) {
         fetchCart(session.user.id);
@@ -88,7 +80,6 @@ const Checkout = () => {
       navigate("/cart");
       return;
     }
-
     const productIds = guestCart.map((i: any) => i.product_id);
     const { data: products } = await supabase
       .from("products")
@@ -112,12 +103,12 @@ const Checkout = () => {
   const getTotalPrice = () =>
     cartItems.reduce((total, item) => total + item.products.price * item.quantity, 0);
 
-  // Proceed to payment section
+  // ==== Save delivery details ====
   const handleProceedToPayment = (e: React.FormEvent) => {
     e.preventDefault();
     try {
       checkoutSchema.parse(formData);
-      toast.success("Delivery details saved. Please confirm your payment below.");
+      toast.success("Delivery details saved. Please choose your payment option below.");
       setTimeout(() => {
         paymentRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
       }, 200);
@@ -126,21 +117,14 @@ const Checkout = () => {
     }
   };
 
-  // Confirm Order & Save
-  const handleConfirmOrder = async (e?: React.FormEvent) => {
+  // ==== Confirm order for bank transfer ====
+  const handleConfirmBankOrder = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
+    setSubmitting(true);
 
     try {
       checkoutSchema.parse(formData);
-    } catch (err) {
-      if (err instanceof z.ZodError) {
-        toast.error("Please complete delivery details: " + err.errors[0].message);
-        return;
-      }
-    }
 
-    setSubmitting(true);
-    try {
       const orderPayload = {
         user_id: user?.id ?? null,
         total: getTotalPrice(),
@@ -175,7 +159,6 @@ const Checkout = () => {
       const { error: itemsError } = await supabase.from("order_items").insert(orderItems);
       if (itemsError) throw itemsError;
 
-      // Trigger order confirmation email
       try {
         await supabase.functions.invoke("send-order-confirmation", {
           body: { orderId: order.id },
@@ -199,6 +182,7 @@ const Checkout = () => {
     }
   };
 
+  // ==== Loading state ====
   if (loading) {
     return (
       <div className="min-h-screen flex flex-col">
@@ -211,9 +195,11 @@ const Checkout = () => {
     );
   }
 
+  // ==== Checkout page JSX ====
   return (
     <div className="min-h-screen flex flex-col bg-gray-50">
       <Navbar />
+
       <div className="container mx-auto px-4 py-8 flex-1">
         <div className="text-center bg-purple-50 border border-purple-100 text-purple-800 text-sm py-3 px-4 rounded-md mb-6">
           ⚠️ Please screenshot your order or save your order reference.
@@ -226,30 +212,72 @@ const Checkout = () => {
           <div className="lg:col-span-2">
             <Card className="p-6">
               <form onSubmit={handleProceedToPayment} className="space-y-4">
-                <InputField label="Full name" value={formData.name} onChange={(val) => setFormData({ ...formData, name: val })} />
-                <InputField label="Email" type="email" value={formData.email} onChange={(val) => setFormData({ ...formData, email: val })} />
-                <InputField label="Phone" type="tel" value={formData.phone} onChange={(val) => setFormData({ ...formData, phone: val })} />
+                <InputField
+                  label="Full name"
+                  value={formData.name}
+                  onChange={(val) => setFormData({ ...formData, name: val })}
+                />
+                <InputField
+                  label="Email"
+                  type="email"
+                  value={formData.email}
+                  onChange={(val) => setFormData({ ...formData, email: val })}
+                />
+                <InputField
+                  label="Phone"
+                  type="tel"
+                  value={formData.phone}
+                  onChange={(val) => setFormData({ ...formData, phone: val })}
+                />
 
                 <div>
-                  <Label className="text-sm font-medium mb-2 block">Fulfillment Method</Label>
+                  <Label className="text-sm font-medium mb-2 block">
+                    Fulfillment Method
+                  </Label>
                   <RadioGroup
                     value={formData.deliveryMethod}
                     onValueChange={(v) => setFormData({ ...formData, deliveryMethod: v as any })}
                     className="grid grid-cols-3 gap-3"
                   >
-                    <LabelOption value="doorstep" label="Doorstep" description="Delivered to your address" icon={<Truck className="h-4 w-4 text-purple-600" />} formData={formData} />
-                    <LabelOption value="park" label="Park" description="Pick up at nearest park / terminal" icon={<Package className="h-4 w-4 text-purple-600" />} formData={formData} />
-                    <LabelOption value="pickup" label="Pickup" description="Collect from store" icon={<Store className="h-4 w-4 text-purple-600" />} formData={formData} />
+                    <LabelOption
+                      value="doorstep"
+                      label="Doorstep"
+                      description="Delivered to your address"
+                      icon={<Truck className="h-4 w-4 text-purple-600" />}
+                      formData={formData}
+                    />
+                    <LabelOption
+                      value="park"
+                      label="Park"
+                      description="Pick up at nearest park / terminal"
+                      icon={<Package className="h-4 w-4 text-purple-600" />}
+                      formData={formData}
+                    />
+                    <LabelOption
+                      value="pickup"
+                      label="Pickup"
+                      description="Collect from store"
+                      icon={<Store className="h-4 w-4 text-purple-600" />}
+                      formData={formData}
+                    />
                   </RadioGroup>
                 </div>
 
                 {formData.deliveryMethod !== "pickup" && (
                   <div>
-                    <Label htmlFor="address">{formData.deliveryMethod === "doorstep" ? "Delivery Address" : "Nearest Park / Terminal"}</Label>
+                    <Label htmlFor="address">
+                      {formData.deliveryMethod === "doorstep"
+                        ? "Delivery Address"
+                        : "Nearest Park / Terminal"}
+                    </Label>
                     <Textarea
                       id="address"
                       rows={3}
-                      placeholder={formData.deliveryMethod === "doorstep" ? "Street, house number, area" : "Nearest park / terminal"}
+                      placeholder={
+                        formData.deliveryMethod === "doorstep"
+                          ? "Street, house number, area"
+                          : "Nearest park / terminal"
+                      }
                       value={formData.address}
                       onChange={(e) => setFormData({ ...formData, address: e.target.value })}
                       required
@@ -259,35 +287,52 @@ const Checkout = () => {
 
                 {formData.deliveryMethod === "pickup" && <PickupInfo />}
 
-                <Button type="submit" className="w-full bg-purple-600 hover:bg-purple-700 text-white">
+                <Button
+                  type="submit"
+                  className="w-full bg-purple-600 hover:bg-purple-700 text-white"
+                >
                   Save & Continue
                 </Button>
               </form>
             </Card>
           </div>
 
-          {/* Order Summary + Payment */}
+          {/* Order Summary + Payments */}
           <div>
             <Card className="p-6">
               <OrderSummary cartItems={cartItems} getTotalPrice={getTotalPrice} />
             </Card>
 
             <div ref={paymentRef} className="space-y-6 mt-6">
-              <BankTransfer onConfirm={handleConfirmOrder} submitting={submitting} bankDetails={BANK_DETAILS} />
-              {/* Paystack integration placeholder */}
-              {/* <PaystackPayment /> */}
+              {/* Bank Transfer */}
+              <BankTransfer
+                onConfirm={handleConfirmBankOrder}
+                submitting={submitting}
+              />
+
+              {/* Online Payment */}
+              <PaystackPayment
+                email={formData.email}
+                amount={getTotalPrice() * 100}
+                onSuccess={async (reference) => {
+                  await handleConfirmBankOrder(); // Save order after successful payment
+                  toast.success(`Payment successful! Reference: ${reference.reference}`);
+                  navigate("/thank-you");
+                }}
+                onClose={() => toast("Payment cancelled")}
+              />
             </div>
           </div>
         </div>
       </div>
 
-      {showBankModal && <BankModal navigate={navigate} setShowBankModal={setShowBankModal} bankDetails={BANK_DETAILS} />}
+      {showBankModal && <BankModal navigate={navigate} setShowBankModal={setShowBankModal} />}
       <Footer />
     </div>
   );
 };
 
-// === Helper Components ===
+// ===== Helper components =====
 const InputField = ({ label, value, onChange, type = "text" }: any) => (
   <div>
     <Label>{label}</Label>
@@ -339,7 +384,7 @@ const OrderSummary = ({ cartItems, getTotalPrice }: any) => (
   </>
 );
 
-const BankTransfer = ({ onConfirm, submitting, bankDetails }: any) => (
+const BankTransfer = ({ onConfirm, submitting }: any) => (
   <div className="border rounded-lg p-4 bg-white space-y-2">
     <h3 className="text-lg font-semibold mb-3">Bank Transfer</h3>
     <div className="flex items-center gap-3 mb-2">
@@ -350,9 +395,9 @@ const BankTransfer = ({ onConfirm, submitting, bankDetails }: any) => (
       </div>
     </div>
     <div className="text-sm text-muted-foreground leading-relaxed">
-      <div><strong>Account Name:</strong> {bankDetails.accountName}</div>
-      <div><strong>Bank:</strong> {bankDetails.bank}</div>
-      <div><strong>Account Number:</strong> {bankDetails.accountNumber}</div>
+      <div><strong>Account Name:</strong> Mosh Apparels Ventures</div>
+      <div><strong>Bank:</strong> OPay</div>
+      <div><strong>Account Number:</strong> 6142257816</div>
     </div>
     <div className="mt-3 text-xs text-muted-foreground">
       After transfer, click <strong>“I have paid — Confirm Order”</strong>.
@@ -363,7 +408,7 @@ const BankTransfer = ({ onConfirm, submitting, bankDetails }: any) => (
   </div>
 );
 
-const BankModal = ({ navigate, setShowBankModal, bankDetails }: any) => (
+const BankModal = ({ navigate, setShowBankModal }: any) => (
   <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
     <div className="bg-white rounded-2xl max-w-md w-full p-6">
       <h3 className="text-xl font-bold mb-3">Order Confirmed</h3>
@@ -372,15 +417,13 @@ const BankModal = ({ navigate, setShowBankModal, bankDetails }: any) => (
         Please keep your payment receipt and a screenshot of this order.
       </p>
       <div className="space-y-2 text-sm">
-        <div><strong>Account Name:</strong> {bankDetails.accountName}</div>
-        <div><strong>Bank:</strong> {bankDetails.bank}</div>
-        <div><strong>Account Number:</strong> {bankDetails.accountNumber}</div>
+        <div><strong>Account Name:</strong> Mosh Apparels Ventures</div>
+        <div><strong>Bank:</strong> OPay</div>
+        <div><strong>Account Number:</strong> 6142257816</div>
       </div>
       <div className="mt-6 flex justify-end gap-3">
         <Button variant="outline" onClick={() => { setShowBankModal(false); navigate("/"); }}>Done</Button>
-        <Button onClick={() => { setShowBankModal(false); navigate("/thank-you"); }} className="bg-purple-600 hover:bg-purple-700 text-white">
-          I’ve Paid — Next
-        </Button>
+        <Button onClick={() => { setShowBankModal(false); navigate("/thank-you"); }} className="bg-purple-600 hover:bg-purple-700 text-white">I’ve Paid — Next</Button>
       </div>
     </div>
   </div>
@@ -392,12 +435,12 @@ const LabelOption = ({ value, label, description, icon, formData }: any) => (
     <Label
       htmlFor={value}
       className={`p-3 rounded-md border ${
-        formData.deliveryMethod === value
-          ? "border-purple-500 bg-purple-50"
-          : "border-muted bg-white"
+        formData.deliveryMethod === value ? "border-purple-500 bg-purple-50" : "border-muted bg-white"
       } cursor-pointer block`}
     >
-      <div className="flex items-center gap-2">{icon}<span className="text-sm font-medium">{label}</span></div>
+      <div className="flex items-center gap-2">
+        {icon} <span className="text-sm font-medium">{label}</span>
+      </div>
       <div className="text-xs text-muted-foreground">{description}</div>
     </Label>
   </div>
